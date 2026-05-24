@@ -1,0 +1,17 @@
+﻿@page "/not-found"
+@using MudBlazor
+@inject NavigationManager NavManager
+@code {
+    private async Task GoBack(MouseEventArgs args)
+    { 
+       NavManager.NavigateTo("/home");
+    }
+}
+@layout MainLayout
+
+<h2> Код Ошибки 404</h2>
+<h3>Страница не найдена. </h3>
+<p>Нам очень жаль что страница не найдена.</p>
+<MudButton Href="/home" Color="Color.Primary">
+    Вернуться на главную страницу
+</MudButton>
