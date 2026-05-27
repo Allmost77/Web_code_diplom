@@ -9,15 +9,40 @@
 
 
 @code {
+    
+    private List<MapMarkerDto> markers = new()
+    {
+        new MapMarkerDto
+        {
+            Id = 1,
+            Title = "УНО №001",
+            Address = "Москва, ул. Тверская, д. 1",
+            Status = "В работе",
+            Latitude = 55.757876,
+            Longitude = 37.613561
+        },
+        new MapMarkerDto
+        {
+            Id = 2,
+            Title = "УНО №002",
+            Address = "Люберцы, Октябрьский проспект, д. 123",
+            Status = "Требует проверки",
+            Latitude = 55.676494,
+            Longitude = 37.893693
+        }
+    };
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
+       
         try
         {
-            await Task.Delay(300);
-            await JS.InvokeVoidAsync("initMap", "yandex-map");
+            await Task.Delay(700);
+            await JS.InvokeVoidAsync("initYandexMap", "yandex-map");
+                // await JS.InvokeVoidAsync("addYandexMarkers", markers);
+                await JS.InvokeVoidAsync("setYandexMarkers", markers);
         }
         catch (Exception ex)
         {
@@ -28,5 +53,15 @@
     private void AddToMap()
     {
         
+        
+    }
+    public class MapMarkerDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Address { get; set; } = "";
+        public string Status { get; set; } = "";
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
     }
 }
