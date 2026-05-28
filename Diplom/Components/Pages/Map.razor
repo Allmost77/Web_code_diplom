@@ -29,6 +29,14 @@
             Status = "Требует проверки",
             Latitude = 55.676494,
             Longitude = 37.893693
+        },
+        new MapMarkerDto {
+            Id = 3,
+            Title = "Мой Дом",
+            Address = null,
+            Status = null,
+            Latitude = 55.692875,
+            Longitude = 37.893146 
         }
     };
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -41,7 +49,6 @@
         {
             await Task.Delay(700);
             await JS.InvokeVoidAsync("initYandexMap", "yandex-map");
-                // await JS.InvokeVoidAsync("addYandexMarkers", markers);
                 await JS.InvokeVoidAsync("setYandexMarkers", markers);
         }
         catch (Exception ex)
