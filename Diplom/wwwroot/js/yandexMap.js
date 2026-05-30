@@ -1,11 +1,16 @@
-﻿let yandexMap = null;
+let yandexMap = null;
 let yandexMarkers = [];
-let YMapDefaultMarkerClass = null;
+let yandexMarkerClass = null;
+let yandexMapResizeObserver = null;
 
 window.initYandexMap = async function (elementId) {
-    console.log("initYandexMap called");
+    const container = await waitForMapContainer(elementId);
 
+    await waitForYmaps3();
     await ymaps3.ready;
+    await waitForNextPaint();
+
+    resetYandexMap(container);
 
     const {
         YMap,
@@ -14,12 +19,7 @@ window.initYandexMap = async function (elementId) {
         YMapMarker
     } = ymaps3;
 
-   
-
-    const container = document.getElementById(elementId);
-
-
-
+    yandexMarkerClass = YMapMarker;
     yandexMap = new YMap(container, {
         location: {
             center: [37.617644, 55.755819],
@@ -30,161 +30,144 @@ window.initYandexMap = async function (elementId) {
     yandexMap.addChild(new YMapDefaultSchemeLayer());
     yandexMap.addChild(new YMapDefaultFeaturesLayer());
 
-    window.YMapMarkerClass = YMapMarker;
-    console.log("Yandex map initialized");
+    watchMapSize(container);
+    refreshYandexMap();
 };
 
-
 window.setYandexMarkers = function (markers) {
-    console.log("setYandexMarkers called", markers);
-    if (!yandexMap) {
+    if (!yandexMap || !yandexMarkerClass) {
         console.error("Yandex map is not initialized");
         return;
     }
 
-    if (!window.YMapMarkerClass) {
-        console.error("YMapMarkerClass is not initialized");
-        return;
-    }
     clearMarkers();
 
-
     markers.forEach(markerData => {
-
-        const markerElement = createMarkerElement(markerData);
-
-        const marker = new window.YMapMarkerClass(
+        const marker = new yandexMarkerClass(
             {
                 coordinates: [markerData.longitude, markerData.latitude]
             },
-            markerElement
+            createMarkerElement(markerData)
         );
 
         yandexMap.addChild(marker);
-
         yandexMarkers.push(marker);
-        console.log(`Added ${markers.length} markers`);
     });
+
+    refreshYandexMap();
 };
+
+async function waitForYmaps3(timeoutMs = 10000) {
+    const startedAt = Date.now();
+
+    while (!window.ymaps3?.ready) {
+        if (Date.now() - startedAt > timeoutMs) {
+            throw new Error("Yandex Maps API was not loaded");
+        }
+
+        await delay(100);
+    }
+}
+
+async function waitForMapContainer(elementId, timeoutMs = 10000) {
+    const startedAt = Date.now();
+
+    while (true) {
+        const container = document.getElementById(elementId);
+        const rect = container?.getBoundingClientRect();
+
+        if (container && rect && rect.width > 0 && rect.height > 0) {
+            return container;
+        }
+
+        if (Date.now() - startedAt > timeoutMs) {
+            throw new Error(`Map container '${elementId}' is not ready`);
+        }
+
+        await nextAnimationFrame();
+    }
+}
+
+function resetYandexMap(container) {
+    if (yandexMap && typeof yandexMap.destroy === "function") {
+        yandexMap.destroy();
+    }
+
+    if (yandexMapResizeObserver) {
+        yandexMapResizeObserver.disconnect();
+    }
+
+    container.innerHTML = "";
+    yandexMap = null;ё
+    yandexMarkers = [];
+    yandexMarkerClass = null;
+    yandexMapResizeObserver = null;
+}
+
+function watchMapSize(container) {
+    yandexMapResizeObserver = new ResizeObserver(() => refreshYandexMap());
+    yandexMapResizeObserver.observe(container);
+}
 
 function createMarkerElement(markerData) {
     const markerElement = document.createElement("div");
     markerElement.className = "custom-marker";
+    markerElement.onclick = () => showUnoPopup(markerElement, markerData);
 
     const dot = document.createElement("div");
     dot.className = "marker-dot";
 
     markerElement.appendChild(dot);
 
-    markerElement.onclick = () => {
-        showUnoPopup(markerElement, markerData);
-    };
-
     return markerElement;
 }
 
 function showUnoPopup(markerElement, markerData) {
-    document.querySelectorAll(".uno-popup").forEach(p => p.remove());
+    document.querySelectorAll(".uno-popup").forEach(popup => popup.remove());
 
     const popup = document.createElement("div");
     popup.className = "uno-popup";
 
-    popup.innerHTML = `
-        <button class="uno-popup-close">×</button>
-        <h3>${markerData.title}</h3>
-        <p><b>Статус:</b> ${markerData.status}</p>
-        <p><b>Адрес:</b> ${markerData.address}</p>
-        <button class="uno-popup-button">Перейти к УНО</button>
-    `;
-
-    popup.querySelector(".uno-popup-close").onclick = (event) => {
+    const closeButton = document.createElement("button");
+    closeButton.className = "uno-popup-close";
+    closeButton.type = "button";
+    closeButton.textContent = "×";
+    closeButton.onclick = event => {
         event.stopPropagation();
         popup.remove();
     };
 
-    popup.querySelector(".uno-popup-button").onclick = (event) => {
-        event.stopPropagation();
-        window.location.href = `/uno/${markerData.id}`;
-    };
-
-    markerElement.appendChild(popup);
-}
-function addYandexMarker(markerData) {
-    let popupIsOpen = false;
-
-    const marker = new YMapDefaultMarkerClass({
-        coordinates: [markerData.longitude, markerData.latitude],
-        title: markerData.title,
-        subtitle: markerData.status,
-        color: getColorByStatus(markerData.status),
-        popup: {
-            show: popupIsOpen,
-            content: () => createPolePopup(markerData)
-        },
-        onClick: () => {
-            popupIsOpen = !popupIsOpen;
-
-            marker.update({
-                popup: {
-                    show: popupIsOpen,
-                    content: () => createPolePopup(markerData)
-                }
-            });
-        }
-    });
-
-    yandexMap.addChild(marker);
-    yandexMarkers.push(marker);
-}
-
-function createPolePopup(markerData) {
-    const container = document.createElement("div");
-    container.classList.add("map-balloon");
-
     const title = document.createElement("h3");
     title.textContent = markerData.title;
 
-    const address = document.createElement("p");
-    address.innerHTML = `<b>Адрес:</b> ${markerData.address}`;
+    const status = createPopupLine("Статус:", markerData.status);
+    const address = createPopupLine("Адрес:", markerData.address);
 
-    const status = document.createElement("p");
-    status.innerHTML = `<b>Статус:</b> ${markerData.status}`;
-
-    const button = document.createElement("button");
-    button.classList.add("map-balloon-button");
-    button.textContent = "Подробнее";
-
-    button.onclick = () => {
-        alert(`Открыть УНО ID: ${markerData.id}`);
+    const detailsButton = document.createElement("a");
+    detailsButton.className = "uno-popup-button";
+    detailsButton.href = `/uno/${markerData.id}`;
+    detailsButton.textContent = "Перейти к УНО";
+    detailsButton.onclick = event => {
+        event.stopPropagation();
     };
 
-    container.appendChild(title);
-    container.appendChild(address);
-    container.appendChild(status);
-    container.appendChild(button);
-
-    return container;
+    popup.append(closeButton, title, status, address, detailsButton);
+    markerElement.appendChild(popup);
 }
+
+function createPopupLine(label, value) {
+    const line = document.createElement("p");
+    const strong = document.createElement("b");
+
+    strong.textContent = label;
+    line.append(strong, ` ${value || "-"}`);
+
+    return line;
+}
+
 function clearMarkers() {
-
-    yandexMarkers.forEach(marker => {
-        yandexMap.removeChild(marker);
-    });
-
+    yandexMarkers.forEach(marker => yandexMap.removeChild(marker));
     yandexMarkers = [];
-}
-
-function getColorByStatus(status) {
-    switch (status) {
-        case "В работе":
-            return "#ff9800";
-        case "Требует проверки":
-            return "#f44336";
-        case "Исправен":
-            return "#4caf50";
-        default:
-            return "#2196f3";
-    }
 }
 
 function refreshYandexMap() {
@@ -192,7 +175,21 @@ function refreshYandexMap() {
         return;
     }
 
-    setTimeout(() => yandexMap.update({}), 100);
-    setTimeout(() => yandexMap.update({}), 300);
-    setTimeout(() => yandexMap.update({}), 700);
+    [100, 300, 700].forEach(timeout => {
+        setTimeout(() => yandexMap?.update({}), timeout);
+    });
 }
+
+function delay(timeout) {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+}
+
+async function waitForNextPaint() {
+    await nextAnimationFrame();
+    await nextAnimationFrame();
+}
+
+function nextAnimationFrame() {
+    return new Promise(resolve => requestAnimationFrame(resolve));
+}
+

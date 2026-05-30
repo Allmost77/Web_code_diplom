@@ -1,74 +1,48 @@
-﻿@page "/map"
-@rendermode InteractiveServer
+@page "/map"
+@using Diplom.Data.Services
 @inject IJSRuntime JS
+@inject LightingObjectService LightingObjectService
 
-<div style="display: flex; flex-direction: column; width: 100%; height: calc(100vh - 30px); padding: 15px; box-sizing: border-box;">
-    <!-- Контейнер карты теперь жестко привязан к границам родительского белого поля -->
-    <div id="yandex-map" style="width: 100%; height: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
-</div>
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="ma-4">
+        @errorMessage
+    </MudAlert>
+}
 
+<MudPaper Class="map-page pa-4" Elevation="0">
+    <MudPaper id="yandex-map" Class="map-container" Elevation="3"/>
+</MudPaper>
 
 @code {
-    
-    private List<MapMarkerDto> markers = new()
+    private List<MapMarkerDto> markers = [];
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
     {
-        new MapMarkerDto
+        try
         {
-            Id = 1,
-            Title = "УНО №001",
-            Address = "Москва, ул. Тверская, д. 1",
-            Status = "В работе",
-            Latitude = 55.757876,
-            Longitude = 37.613561
-        },
-        new MapMarkerDto
-        {
-            Id = 2,
-            Title = "УНО №002",
-            Address = "Люберцы, Октябрьский проспект, д. 123",
-            Status = "Требует проверки",
-            Latitude = 55.676494,
-            Longitude = 37.893693
-        },
-        new MapMarkerDto {
-            Id = 3,
-            Title = "Мой Дом",
-            Address = null,
-            Status = null,
-            Latitude = 55.692875,
-            Longitude = 37.893146 
+            markers = await LightingObjectService.GetMapMarkersAsync();
         }
-    };
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить объекты освещения для карты: {ex.Message}";
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
-       
         try
         {
-            await Task.Delay(700);
             await JS.InvokeVoidAsync("initYandexMap", "yandex-map");
-                await JS.InvokeVoidAsync("setYandexMarkers", markers);
+            await JS.InvokeVoidAsync("setYandexMarkers", markers);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Yandex map error: {ex.Message}");
         }
-    }
-
-    private void AddToMap()
-    {
-        
-        
-    }
-    public class MapMarkerDto
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = "";
-        public string Address { get; set; } = "";
-        public string Status { get; set; } = "";
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
     }
 }

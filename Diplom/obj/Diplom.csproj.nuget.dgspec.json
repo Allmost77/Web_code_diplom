@@ -56,10 +56,6 @@
               "target": "Package",
               "version": "[10.0.8, )"
             },
-            "Microsoft.EntityFrameworkCore.SqlServer": {
-              "target": "Package",
-              "version": "[10.0.8, )"
-            },
             "MudBlazor": {
               "target": "Package",
               "version": "[9.4.0, )"

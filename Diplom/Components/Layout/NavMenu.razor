@@ -1,30 +1,26 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Админ панель Мосгорсвет</a>
-    </div>
+<div class="nav-header px-3">
+    <MudText Typo="Typo.h6" Class="navbar-brand">Админ панель Мосгорсвет</MudText>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler"/>
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="home" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Домашняя страница
-            </NavLink>
-        </div>
+    <MudNavMenu>
+        <MudNavLink Href="home"
+                    Match="NavLinkMatch.All"
+                    Icon="@Icons.Material.Filled.Home">
+            Домашняя страница
+        </MudNavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="map">
-                <img src="Images/Icons/map-icon.png" width="20" height="20" style="margin-right: 10px" alt="Карта" class="nav-custom-icon" /> Карта
-            </NavLink>
-        </div>
+        <MudNavLink Href="map"
+                    Icon="@Icons.Material.Filled.Map"
+                    data-enhance-nav="false">
+            Карта
+        </MudNavLink>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <img src="Images/Icons/Usericon.png" width="20" height="20" style="margin-right: 10px" alt="Работник" class="nav-custom-icon" /> Список сотрудников
-            </NavLink>
-        </div>
-    </nav>
+        <MudNavLink Href="employees"
+                    Icon="@Icons.Material.Filled.Person">
+            Список сотрудников
+        </MudNavLink>
+    </MudNavMenu>
 </div>
-

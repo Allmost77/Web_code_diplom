@@ -1,5 +1,7 @@
 using Diplom.Components;
 using Diplom.Data.DbContext;
+using Diplom.Data.Services;
+using Microsoft.AspNetCore.Components.Server;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 var builder = WebApplication.CreateBuilder(args);
@@ -7,9 +9,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.Configure<CircuitOptions>(options =>
+{
+    options.DetailedErrors = builder.Environment.IsDevelopment();
+});
 
 builder.Services.AddMudServices();
-builder.Services.AddDbContext<AppDbContext>(options => {options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));});
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+builder.Services.AddScoped<LightingObjectService>();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
