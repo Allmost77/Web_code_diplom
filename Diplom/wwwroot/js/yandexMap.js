@@ -2,6 +2,7 @@ let yandexMap = null;
 let yandexMarkers = [];
 let yandexMarkerClass = null;
 let yandexMapResizeObserver = null;
+let yandexMapClickListener = null;
 
 window.initYandexMap = async function (elementId) {
     const container = await waitForMapContainer(elementId);
@@ -16,7 +17,8 @@ window.initYandexMap = async function (elementId) {
         YMap,
         YMapDefaultSchemeLayer,
         YMapDefaultFeaturesLayer,
-        YMapMarker
+        YMapMarker,
+        YMapListener
     } = ymaps3;
 
     yandexMarkerClass = YMapMarker;
@@ -29,6 +31,10 @@ window.initYandexMap = async function (elementId) {
 
     yandexMap.addChild(new YMapDefaultSchemeLayer());
     yandexMap.addChild(new YMapDefaultFeaturesLayer());
+    yandexMapClickListener = new YMapListener({
+        onClick: (_, event) => showCreateUnoPopup(container, event.coordinates)
+    });
+    yandexMap.addChild(yandexMapClickListener);
 
     watchMapSize(container);
     refreshYandexMap();
@@ -102,6 +108,7 @@ function resetYandexMap(container) {
     yandexMarkers = [];
     yandexMarkerClass = null;
     yandexMapResizeObserver = null;
+    yandexMapClickListener = null;
 }
 
 function watchMapSize(container) {
@@ -123,7 +130,7 @@ function createMarkerElement(markerData) {
 }
 
 function showUnoPopup(markerElement, markerData) {
-    document.querySelectorAll(".uno-popup").forEach(popup => popup.remove());
+    removeMapPopups();
 
     const popup = document.createElement("div");
     popup.className = "uno-popup";
@@ -153,6 +160,52 @@ function showUnoPopup(markerElement, markerData) {
 
     popup.append(closeButton, title, status, address, detailsButton);
     markerElement.appendChild(popup);
+}
+
+function showCreateUnoPopup(container, coordinates) {
+    removeMapPopups();
+
+    if (!coordinates || coordinates.length < 2) {
+        return;
+    }
+
+    const longitude = Number(coordinates[0]);
+    const latitude = Number(coordinates[1]);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return;
+    }
+
+    const popup = document.createElement("div");
+    popup.className = "map-create-popup";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "uno-popup-close";
+    closeButton.type = "button";
+    closeButton.textContent = "×";
+    closeButton.onclick = event => {
+        event.stopPropagation();
+        popup.remove();
+    };
+
+    const title = document.createElement("h3");
+    title.textContent = "Новая точка";
+
+    const coordinatesLine = document.createElement("p");
+    coordinatesLine.textContent = `${latitude.toFixed(7)}, ${longitude.toFixed(7)}`;
+
+    const createButton = document.createElement("a");
+    createButton.className = "uno-popup-button";
+    createButton.href = `/uno/create?lat=${latitude.toFixed(7)}&lng=${longitude.toFixed(7)}`;
+    createButton.textContent = "Создать УНО";
+    createButton.onclick = event => event.stopPropagation();
+
+    popup.append(closeButton, title, coordinatesLine, createButton);
+    container.appendChild(popup);
+}
+
+function removeMapPopups() {
+    document.querySelectorAll(".uno-popup, .map-create-popup").forEach(popup => popup.remove());
 }
 
 function createPopupLine(label, value) {
