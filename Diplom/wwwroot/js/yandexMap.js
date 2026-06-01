@@ -31,8 +31,15 @@ window.initYandexMap = async function (elementId) {
 
     yandexMap.addChild(new YMapDefaultSchemeLayer());
     yandexMap.addChild(new YMapDefaultFeaturesLayer());
+
     yandexMapClickListener = new YMapListener({
-        onClick: (_, event) => showCreateUnoPopup(container, event.coordinates)
+        onClick: (_, event) => {
+            if (isMapDomPopupClick(event)) {
+                return;
+            }
+
+            showCreateUnoPopup(container, event.coordinates);
+        }
     });
     yandexMap.addChild(yandexMapClickListener);
 
@@ -119,7 +126,10 @@ function watchMapSize(container) {
 function createMarkerElement(markerData) {
     const markerElement = document.createElement("div");
     markerElement.className = "custom-marker";
-    markerElement.onclick = () => showUnoPopup(markerElement, markerData);
+    markerElement.onclick = event => {
+        event.stopPropagation();
+        showUnoPopup(markerElement, markerData);
+    };
 
     const dot = document.createElement("div");
     dot.className = "marker-dot";
@@ -127,6 +137,17 @@ function createMarkerElement(markerData) {
     markerElement.appendChild(dot);
 
     return markerElement;
+}
+
+function isMapDomPopupClick(event) {
+    const sourceEvent = event && (event.domEvent || event.originalEvent || event);
+    const target = sourceEvent && sourceEvent.target;
+
+    return Boolean(
+        target &&
+        typeof target.closest === "function" &&
+        target.closest(".custom-marker, .uno-popup, .map-create-popup")
+    );
 }
 
 function showUnoPopup(markerElement, markerData) {
