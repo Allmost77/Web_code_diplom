@@ -147,8 +147,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : Microsoft.En
             entity.Property(user => user.Id)
                 .HasColumnName("id")
                 .ValueGeneratedOnAdd();
-            entity.Property(user => user.Login).HasColumnName("login");
-            entity.Property(user => user.FullName).HasColumnName("fullname");
+            entity.Ignore(user => user.Login);
+            entity.Ignore(user => user.FullName);
         });
     }
 }

@@ -60,7 +60,7 @@ window.setYandexMarkers = function (markers) {
 async function waitForYmaps3(timeoutMs = 10000) {
     const startedAt = Date.now();
 
-    while (!window.ymaps3?.ready) {
+    while (!window.ymaps3 || !window.ymaps3.ready) {
         if (Date.now() - startedAt > timeoutMs) {
             throw new Error("Yandex Maps API was not loaded");
         }
@@ -74,7 +74,7 @@ async function waitForMapContainer(elementId, timeoutMs = 10000) {
 
     while (true) {
         const container = document.getElementById(elementId);
-        const rect = container?.getBoundingClientRect();
+        const rect = container ? container.getBoundingClientRect() : null;
 
         if (container && rect && rect.width > 0 && rect.height > 0) {
             return container;
@@ -98,7 +98,7 @@ function resetYandexMap(container) {
     }
 
     container.innerHTML = "";
-    yandexMap = null;ё
+    yandexMap = null;
     yandexMarkers = [];
     yandexMarkerClass = null;
     yandexMapResizeObserver = null;
@@ -176,7 +176,11 @@ function refreshYandexMap() {
     }
 
     [100, 300, 700].forEach(timeout => {
-        setTimeout(() => yandexMap?.update({}), timeout);
+        setTimeout(() => {
+            if (yandexMap) {
+                yandexMap.update({});
+            }
+        }, timeout);
     });
 }
 
@@ -192,4 +196,3 @@ async function waitForNextPaint() {
 function nextAnimationFrame() {
     return new Promise(resolve => requestAnimationFrame(resolve));
 }
-

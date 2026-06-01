@@ -29,8 +29,16 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/CreateTaskUno.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDcmVhdGVUYXNrVW5vLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/CreateUno.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDcmVhdGVVbm8ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/EditTask.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFZGl0VGFzay5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/EditUno.razor]
@@ -55,6 +63,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/NotFound.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOb3RGb3VuZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/TaskDetails.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xUYXNrRGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Allmost/RiderProjects/Diplom/Diplom/Components/Pages/UnoDetails.razor]

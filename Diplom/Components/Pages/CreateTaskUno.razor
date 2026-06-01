@@ -1,0 +1,247 @@
+@page "/uno/{Id:int}/createtask"
+@using Diplom.Data.Services
+@using Microsoft.EntityFrameworkCore
+@inject LightingObjectService LightingObjectService
+@inject TaskService TaskService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Добавление задачи к УНО</PageTitle>
+
+@if (isLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="pa-6">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+    </MudStack>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+        @errorMessage
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">Добавление задачи к УНО</MudText>
+                <MudText Typo="Typo.body1">@lightingObjectTitle</MudText>
+            </MudStack>
+
+            <MudButton Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="Cancel">
+                Назад
+            </MudButton>
+        </MudStack>
+
+        @if (!string.IsNullOrWhiteSpace(saveErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                @saveErrorMessage
+            </MudAlert>
+        }
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudForm @ref="form">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string"
+                                   @bind-Value="model.TaskType"
+                                   Label="Тип задачи"
+                                   Required="true"
+                                   RequiredError="Выберите тип задачи"
+                                   Variant="Variant.Outlined">
+                            @foreach (var taskType in taskTypes)
+                            {
+                                <MudSelectItem T="string" Value="@taskType">@taskType</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string"
+                                   @bind-Value="model.Priority"
+                                   Label="Приоритет"
+                                   Required="true"
+                                   RequiredError="Выберите приоритет"
+                                   Variant="Variant.Outlined">
+                            @foreach (var priority in priorities)
+                            {
+                                <MudSelectItem T="string" Value="@priority">@priority</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="model.ProblemDescription"
+                                      Label="Описание проблемы"
+                                      Required="true"
+                                      RequiredError="Опишите проблему"
+                                      Lines="5"
+                                      Variant="Variant.Outlined"/>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="int?"
+                                   @bind-Value="model.AssignedToUserId"
+                                   Label="Исполнитель"
+                                   Required="true"
+                                   RequiredError="Выберите исполнителя"
+                                   Variant="Variant.Outlined">
+                            @foreach (var employee in employees)
+                            {
+                                <MudSelectItem T="int?" Value="@employee.Id">@employee.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="3">
+                        <MudDatePicker @bind-Date="deadlineDate"
+                                       Label="Дата выполнения"
+                                       Required="true"
+                                       RequiredError="Выберите дату"
+                                       Variant="Variant.Outlined"/>
+                    </MudItem>
+
+                    <MudItem xs="12" md="3">
+                        <MudTimePicker @bind-Time="deadlineTime"
+                                       Label="Время выполнения"
+                                       Required="true"
+                                       RequiredError="Выберите время"
+                                       Variant="Variant.Outlined"/>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="model.OperatorComment"
+                                      Label="Комментарий оператора"
+                                      Lines="3"
+                                      Variant="Variant.Outlined"/>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+            <MudButton Variant="Variant.Text"
+                       Disabled="isSaving"
+                       OnClick="Cancel">
+                Отмена
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="isSaving || employees.Count == 0 || taskStatuses.Count == 0"
+                       StartIcon="@Icons.Material.Filled.AddTask"
+                       OnClick="CreateTask">
+                Создать задачу
+            </MudButton>
+        </MudStack>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private static readonly string[] taskTypes = ["Проверка", "Ремонт", "Замена лампы", "Осмотр", "Другое"];
+    private static readonly string[] priorities = ["Низкий", "Средний", "Высокий", "Аварийный"];
+
+    private MudForm? form;
+    private TaskCreateDto model = new();
+    private List<EmployeeOptionDto> employees = [];
+    private List<StatusOptionDto> taskStatuses = [];
+    private DateTime? deadlineDate = DateTime.Today;
+    private TimeSpan? deadlineTime = new(18, 0, 0);
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? errorMessage;
+    private string? saveErrorMessage;
+    private string lightingObjectTitle = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        saveErrorMessage = null;
+
+        try
+        {
+            var lightingObject = await LightingObjectService.GetLightingObjectDetailsAsync(Id);
+
+            if (lightingObject is null)
+            {
+                errorMessage = "УНО не найдено.";
+                return;
+            }
+
+            lightingObjectTitle = $"{lightingObject.InventoryNumber} — {lightingObject.Address}";
+            employees = await TaskService.GetEmployeesAsync();
+            taskStatuses = await TaskService.GetTaskStatusesAsync();
+
+            model = new TaskCreateDto
+            {
+                LightingObjectId = Id,
+                CreatedByUserId = employees.FirstOrDefault()?.Id ?? 0,
+                AssignedToUserId = employees.FirstOrDefault()?.Id,
+                StatusId = taskStatuses.FirstOrDefault()?.Id ?? 0,
+                TaskType = taskTypes[0],
+                Priority = priorities[1]
+            };
+
+            if (employees.Count == 0)
+                saveErrorMessage = "В таблице Users нет сотрудников. Добавьте хотя бы одного пользователя.";
+
+            if (taskStatuses.Count == 0)
+                saveErrorMessage = "В таблице TaskStatuses нет статусов задач. Добавьте хотя бы один статус.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить данные для задачи: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CreateTask()
+    {
+        if (form is null)
+            return;
+
+        await form.ValidateAsync();
+
+        if (!form.IsValid)
+            return;
+
+        if (deadlineDate is null || deadlineTime is null)
+        {
+            saveErrorMessage = "Укажите срок выполнения.";
+            return;
+        }
+
+        model.Deadline = deadlineDate.Value.Date.Add(deadlineTime.Value);
+        isSaving = true;
+        saveErrorMessage = null;
+
+        try
+        {
+            await TaskService.CreateTaskAsync(model);
+            NavigationManager.NavigateTo($"/uno/{Id}");
+        }
+        catch (DbUpdateException ex)
+        {
+            saveErrorMessage = $"Не удалось создать задачу. {ex.GetBaseException().Message}";
+        }
+        catch (Exception ex)
+        {
+            saveErrorMessage = $"Не удалось создать задачу: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo($"/uno/{Id}");
+}

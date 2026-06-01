@@ -20,6 +20,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 builder.Services.AddScoped<LightingObjectService>();
+builder.Services.AddScoped<TaskService>();
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
