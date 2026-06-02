@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : Microsoft.En
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<WorkTaskStatus> TaskStatuses => Set<WorkTaskStatus>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -17,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : Microsoft.En
         ConfigureLightingObjects(modelBuilder);
         ConfigureTaskStatuses(modelBuilder);
         ConfigureTasks(modelBuilder);
+        ConfigureRoles(modelBuilder);
         ConfigureUsers(modelBuilder);
     }
 
@@ -147,8 +149,38 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : Microsoft.En
             entity.Property(user => user.Id)
                 .HasColumnName("id")
                 .ValueGeneratedOnAdd();
-            entity.Ignore(user => user.Login);
-            entity.Ignore(user => user.FullName);
+            entity.Property(user => user.FullName)
+                .HasColumnName("fullname")
+                .HasMaxLength(200);
+            entity.Property(user => user.Email)
+                .HasColumnName("email")
+                .HasMaxLength(200);
+            entity.Property(user => user.PasswordHash)
+                .HasColumnName("passwordhash")
+                .IsRequired();
+            entity.Property(user => user.RoleId).HasColumnName("roleid");
+
+            entity.HasOne(user => user.Role)
+                .WithMany(role => role.Users)
+                .HasForeignKey(user => user.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureRoles(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("roles");
+
+            entity.HasKey(role => role.Id);
+            entity.Property(role => role.Id)
+                .HasColumnName("id")
+                .ValueGeneratedOnAdd();
+            entity.Property(role => role.Name)
+                .HasColumnName("name")
+                .HasMaxLength(100)
+                .IsRequired();
         });
     }
 }

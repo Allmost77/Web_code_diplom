@@ -158,3 +158,33 @@ h1:focus {
 .uno-popup-button:hover {
     background: #125aa0;
 }
+
+.auth-layout {
+    min-height: 100vh;
+}
+
+.login-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+        linear-gradient(rgba(9, 18, 45, 0.74), rgba(9, 18, 45, 0.84)),
+        linear-gradient(135deg, #10233f 0%, #233044 48%, #4a2f11 100%);
+}
+
+.login-panel {
+    width: min(100%, 430px);
+    padding: 32px;
+    border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+    .login-page {
+        padding: 12px;
+    }
+
+    .login-panel {
+        padding: 22px;
+    }
+}

@@ -1,3 +1,6 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
 <div class="nav-header px-3">
     <MudText Typo="Typo.h6" Class="navbar-brand">Админ панель Мосгорсвет</MudText>
 </div>
@@ -22,5 +25,25 @@
                     Icon="@Icons.Material.Filled.Person">
             Список сотрудников
         </MudNavLink>
+
+        <MudNavLink Icon="@Icons.Material.Filled.Logout"
+                    Disabled="isLoggingOut"
+                    OnClick="LogoutAsync">
+            Выход
+        </MudNavLink>
     </MudNavMenu>
 </div>
+
+@code {
+    private bool isLoggingOut;
+
+    private async Task LogoutAsync()
+    {
+        if (isLoggingOut)
+            return;
+
+        isLoggingOut = true;
+        await JSRuntime.InvokeVoidAsync("diplomAuth.logout");
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+}
