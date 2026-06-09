@@ -1,0 +1,256 @@
+@page "/uno/{Id:int}"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@using Microsoft.EntityFrameworkCore
+@inject LightingObjectService LightingObjectService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+
+<PageTitle>@(lightingObject?.InventoryNumber ?? "УНО")</PageTitle>
+
+@if (isLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="pa-6">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+    </MudStack>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+        @errorMessage
+    </MudAlert>
+}
+else if (lightingObject is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+        УНО не найдено
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">@lightingObject.InventoryNumber</MudText>
+                <MudText Typo="Typo.body1">@lightingObject.Address</MudText>
+            </MudStack>
+
+            <MudChip T="string" Color="@StatusColorMapper.ForLightingObject(lightingObject.Status)">
+                @lightingObject.Status
+            </MudChip>
+        </MudStack>
+
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">Информация об УНО</MudText>
+
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                        <tr>
+                            <td>Инвентарный номер</td>
+                            <td>@lightingObject.InventoryNumber</td>
+                        </tr>
+                        <tr>
+                            <td>Адрес</td>
+                            <td>@lightingObject.Address</td>
+                        </tr>
+                        <tr>
+                            <td>Статус</td>
+                            <td>@lightingObject.Status</td>
+                        </tr>
+                        <tr>
+                            <td>Широта</td>
+                            <td>@lightingObject.Latitude</td>
+                        </tr>
+                        <tr>
+                            <td>Долгота</td>
+                            <td>@lightingObject.Longitude</td>
+                        </tr>
+                        <tr>
+                            <td>Описание</td>
+                            <td>@(lightingObject.Description ?? "-")</td>
+                        </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudStack Spacing="3">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.subtitle2">Всего задач</MudText>
+                        <MudText Typo="Typo.h4">@lightingObject.TasksCount</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.subtitle2">Активные задачи</MudText>
+                        <MudText Typo="Typo.h4">@lightingObject.ActiveTasksCount</MudText>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.subtitle2">Последняя задача</MudText>
+                        <MudText Typo="Typo.h6">@(lightingObject.LastTaskCreatedAt?.ToString("dd.MM.yyyy") ?? "-")</MudText>
+                    </MudPaper>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Assignment"
+                           Href="@($"/uno/{lightingObject.Id}/createtask")">
+                    Создать задачу
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           Href="@($"/uno/{lightingObject.Id}/edit")">
+                    Изменить данные об объекте 
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="GoBack">
+                    Назад
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Elevation="2">
+            <MudToolBar Class="px-4">
+                <MudText Typo="Typo.h6">Задачи по объекту</MudText>
+                <MudSpacer/>
+            </MudToolBar>
+
+            <MudTable Items="lightingObject.Tasks"
+                      Hover="true"
+                      Dense="true"
+                      Elevation="0"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Название</MudTh>
+                    <MudTh>Статус</MudTh>
+                    <MudTh>Исполнитель</MudTh>
+                    <MudTh>Создана</MudTh>
+                    <MudTh>Срок</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Название">@context.Title</MudTd>
+                    <MudTd DataLabel="Статус">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@StatusColorMapper.ForWorkTask(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Исполнитель">@context.Executor</MudTd>
+                    <MudTd DataLabel="Создана">@context.CreatedAt.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Срок">@(context.Deadline?.ToString("dd.MM.yyyy HH:mm") ?? "-")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                       Color="Color.Primary"
+                                       Href="@($"/tasks/{context.Id}")"/>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">Для этого УНО задач пока нет</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+
+        <MudDivider/>
+
+        <MudPaper Class="pa-4" Elevation="0">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h5" Color="Color.Error">Внимание!</MudText>
+                <MudText Typo="Typo.body2">
+                    Удаление невозможно отменить! Если к УНО привязаны задачи то перед удалением УНО проверте их и удалите задачи!
+                </MudText>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           Disabled="isDeleting"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteLightingObject">
+                    Удалить УНО
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private LightingObjectDetailsDto? lightingObject;
+    private bool isLoading = true;
+    private bool isDeleting;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            lightingObject = await LightingObjectService.GetLightingObjectDetailsAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить УНО: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack() => NavigationManager.NavigateTo("/home");
+
+    private async Task DeleteLightingObject()
+    {
+        if (lightingObject is null)
+            return;
+
+        var confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Удалить УНО {lightingObject.InventoryNumber}? Это действие нельзя отменить.");
+
+        if (!confirmed)
+            return;
+
+        isDeleting = true;
+        errorMessage = null;
+
+        try
+        {
+            var deleted = await LightingObjectService.DeleteLightingObjectAsync(lightingObject.Id);
+
+            if (!deleted)
+            {
+                errorMessage = "УНО не найдено. Возможно, оно уже удалено.";
+                return;
+            }
+
+            NavigationManager.NavigateTo("/home");
+        }
+        catch (DbUpdateException ex)
+        {
+            errorMessage = $"Не удалось удалить УНО. Возможно, к нему привязаны задачи. {ex.GetBaseException().Message}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось удалить УНО: {ex.Message}";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+}

@@ -1,0 +1,192 @@
+@page "/tasks/{Id:int}"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@inject TaskService TaskService
+@inject TaskReportService TaskReportService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(task?.Title ?? "Задача")</PageTitle>
+
+@if (isLoading)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="pa-6">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+    </MudStack>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+        @errorMessage
+    </MudAlert>
+}
+else if (task is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+        Задача не найдена
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">@task.Title</MudText>
+                <MudText Typo="Typo.body1">
+                    @task.LightingObjectInventoryNumber — @task.LightingObjectAddress
+                </MudText>
+            </MudStack>
+
+            <MudChip T="string" Color="@StatusColorMapper.ForWorkTask(task.Status)">
+                @task.Status
+            </MudChip>
+        </MudStack>
+
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3">Информация о задаче</MudText>
+
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                        <tr>
+                            <td>Название</td>
+                            <td>@task.Title</td>
+                        </tr>
+                        <tr>
+                            <td>Статус</td>
+                            <td>@task.Status</td>
+                        </tr>
+                        <tr>
+                            <td>Исполнитель</td>
+                            <td>@task.Executor</td>
+                        </tr>
+                        <tr>
+                            <td>Создал пользователь</td>
+                            <td>@task.CreatedByUser</td>
+                        </tr>
+                        <tr>
+                            <td>Создана</td>
+                            <td>@task.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <td>Срок выполнения</td>
+                            <td>@(task.Deadline?.ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                        </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.subtitle2">Объект УНО</MudText>
+                    <MudText Typo="Typo.h6">@task.LightingObjectInventoryNumber</MudText>
+                    <MudText Typo="Typo.body2">@task.LightingObjectAddress</MudText>
+                    <MudButton Class="mt-3"
+                               Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Href="@($"/uno/{task.LightingObjectId}")">
+                        Открыть УНО
+                    </MudButton>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Описание</MudText>
+            <MudText Typo="Typo.body1" Style="white-space: pre-wrap;">@(task.Description ?? "-")</MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Отчёты по задаче</MudText>
+
+            <MudTable Items="reports"
+                      Hover="true"
+                      Dense="true"
+                      Elevation="0"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Дата формирования</MudTh>
+                    <MudTh>Статус выполнения</MudTh>
+                    <MudTh>Комментарий</MudTh>
+                    <MudTh>Фото</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Дата формирования">@context.FormedAt.ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Статус выполнения">@context.CompletionStatus</MudTd>
+                    <MudTd DataLabel="Комментарий">@(string.IsNullOrWhiteSpace(context.Comment) ? "-" : context.Comment)</MudTd>
+                    <MudTd DataLabel="Фото">@context.PhotoCount</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                       Color="Color.Primary"
+                                       Href="@($"/tasks/{task.Id}/reports/{context.Id}")"/>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">Отчёты пока не отправлены</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           Href="@($"/tasks/{task.Id}/edit")">
+                    Изменить задачу
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="GoBack">
+                    Назад к УНО
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TaskDetailsDto? task;
+    private List<TaskReportListItemDto> reports = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            task = await TaskService.GetTaskDetailsAsync(Id);
+            reports = task is null
+                ? []
+                : await TaskReportService.GetReportsForTaskAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить задачу: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        if (task is null)
+        {
+            NavigationManager.NavigateTo("/home");
+            return;
+        }
+
+        NavigationManager.NavigateTo($"/uno/{task.LightingObjectId}");
+    }
+
+}

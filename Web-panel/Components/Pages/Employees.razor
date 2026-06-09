@@ -1,0 +1,91 @@
+@page "/employees"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@inject TaskService TaskService
+
+<PageTitle>Список сотрудников</PageTitle>
+
+<MudStack Spacing="4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">Список сотрудников</MudText>
+        </MudStack>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">
+                @employees.Count сотрудников
+            </MudChip>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       Href="/employees/create">
+                Добавить сотрудника
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            @errorMessage
+        </MudAlert>
+    }
+
+    <MudPaper Elevation="2">
+        <MudToolBar Class="px-4">
+            <MudText Typo="Typo.h6">Сотрудники</MudText>
+            <MudSpacer/>
+            <MudText Typo="Typo.body2">Данные из БД</MudText>
+        </MudToolBar>
+
+        <MudTable Items="employees"
+                  Hover="true"
+                  Dense="true"
+                  Elevation="0"
+                  Loading="isLoading"
+                  Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>ID</MudTh>
+                <MudTh>Имя сотрудника</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Роль в системе</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="ID">@context.Id</MudTd>
+                <MudTd DataLabel="Имя сотрудника">@context.DisplayName</MudTd>
+                <MudTd DataLabel="Email">@(context.Email ?? "-")</MudTd>
+                <MudTd DataLabel="Роль в системе">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                        @(string.IsNullOrWhiteSpace(context.RoleName) ? "Без роли" : context.RoleName)
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">Сотрудники не найдены</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</MudStack>
+
+@code {
+    private List<EmployeeOptionDto> employees = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            employees = await TaskService.GetEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить сотрудников: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

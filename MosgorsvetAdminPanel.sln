@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diplom", "Web-panel\Diplom.csproj", "{64529DC2-0645-47F9-A475-B328A0BDF8C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnittestAdminPanel", "UnittestAdminPanel\UnittestAdminPanel.csproj", "{BFAF5DF2-33E6-4D98-9798-35A3950F47F2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{64529DC2-0645-47F9-A475-B328A0BDF8C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64529DC2-0645-47F9-A475-B328A0BDF8C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64529DC2-0645-47F9-A475-B328A0BDF8C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64529DC2-0645-47F9-A475-B328A0BDF8C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFAF5DF2-33E6-4D98-9798-35A3950F47F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFAF5DF2-33E6-4D98-9798-35A3950F47F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFAF5DF2-33E6-4D98-9798-35A3950F47F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFAF5DF2-33E6-4D98-9798-35A3950F47F2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

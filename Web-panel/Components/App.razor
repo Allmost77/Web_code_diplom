@@ -1,0 +1,44 @@
+﻿@using MudBlazor
+@inject IConfiguration Configuration
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+
+    <ResourcePreloader/>
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]"/>
+    <link rel="stylesheet" href="@Assets["app.css"]"/>
+    <link rel="stylesheet" href="@Assets["Diplom.styles.css"]"/>
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    @if (!string.IsNullOrWhiteSpace(YandexMapsApiKey))
+    {
+        <script src="@YandexMapsScriptUrl"></script>
+    }
+
+    <ImportMap/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <HeadOutlet @rendermode="InteractiveServer"/>
+</head>
+
+<body>
+
+<Routes @rendermode="InteractiveServer"/>
+<ReconnectModal/>
+<script src="js/yandexMap.js"></script>
+<script src="js/auth.js"></script>
+<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+<script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    private string? YandexMapsApiKey => Configuration["YandexMaps:ApiKey"];
+
+    private string YandexMapsScriptUrl =>
+        $"https://api-maps.yandex.ru/v3/?apikey={Uri.EscapeDataString(YandexMapsApiKey ?? "")}&lang=ru_RU";
+}

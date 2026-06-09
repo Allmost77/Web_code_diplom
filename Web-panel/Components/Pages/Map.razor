@@ -1,0 +1,52 @@
+@page "/map"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@inject IJSRuntime JS
+@inject LightingObjectService LightingObjectService
+@inject ILogger<Map> Logger
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="ma-4">
+        @errorMessage
+    </MudAlert>
+}
+
+<MudPaper Class="map-page pa-4" Elevation="0">
+    <MudPaper id="yandex-map" Class="map-container" Elevation="3"/>
+</MudPaper>
+
+@code {
+    private List<MapMarkerDto> markers = [];
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            markers = await LightingObjectService.GetMapMarkersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить объекты освещения для карты: {ex.Message}";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("initYandexMap", "yandex-map");
+            await JS.InvokeVoidAsync("setYandexMarkers", markers);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Yandex map initialization failed.");
+            errorMessage = "Не удалось загрузить Яндекс.Карты. Проверьте API-ключ, доступ к JavaScript API и ограничения домена в кабинете Яндекса.";
+            StateHasChanged();
+        }
+    }
+}

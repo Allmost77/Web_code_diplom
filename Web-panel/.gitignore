@@ -1,0 +1,55 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+out/
+publish/
+
+# Rider and ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# .NET
+TestResults/
+*.nupkg
+*.snupkg
+*.userprefs
+project.lock.json
+project.assets.json
+artifacts/
+
+# ASP.NET local configuration and secrets
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+App_Data/DataProtectionKeys/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.cache

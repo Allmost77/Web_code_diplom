@@ -1,0 +1,203 @@
+@page "/employees/create"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@inject EmployeeService EmployeeService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Добавить сотрудника</PageTitle>
+
+<MudStack Spacing="4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.h4">Добавить сотрудника</MudText>
+
+        <MudButton Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Href="/employees">
+            Назад
+        </MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            @errorMessage
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudForm @ref="form">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="ФИО"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Введите имя сотрудника"
+                                  Disabled="isSaving"
+                                  @bind-Value="model.FullName"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  Required="true"
+                                  RequiredError="Введите email"
+                                  Disabled="isSaving"
+                                  @bind-Value="model.Email"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int"
+                               Label="Роль"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="Выберите роль"
+                               Disabled="isSaving || roles.Count == 0"
+                               @bind-Value="model.RoleId">
+                        @foreach (var role in roles)
+                        {
+                            <MudSelectItem Value="@role.Id">@role.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Пароль"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                                  Required="true"
+                                  RequiredError="Введите пароль"
+                                  Disabled="isSaving"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  @bind-Value="model.Password"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string"
+                                  Label="Повторите пароль"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                                  Required="true"
+                                  RequiredError="Повторите пароль"
+                                  Disabled="isSaving"
+                                  @bind-Value="confirmPassword"/>
+                </MudItem>
+            </MudGrid>
+
+            <MudStack Row="true" Spacing="2" Class="mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PersonAdd"
+                           Disabled="isSaving"
+                           OnClick="CreateAsync">
+                    @if (isSaving)
+                    {
+                        <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true"/>
+                        <span>Сохранение...</span>
+                    }
+                    else
+                    {
+                        <span>Создать сотрудника</span>
+                    }
+                </MudButton>
+
+                <MudButton Variant="Variant.Text"
+                           Disabled="isSaving"
+                           Href="/employees">
+                    Отмена
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudPaper>
+</MudStack>
+
+@code {
+    private readonly EmployeeCreateDto model = new();
+    private readonly List<RoleOptionDto> roles = [];
+    private MudForm form = null!;
+    private bool isSaving;
+    private bool showPassword;
+    private string confirmPassword = "";
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            roles.AddRange(await EmployeeService.GetRolesAsync());
+
+            if (roles.Count > 0)
+                model.RoleId = roles[0].Id;
+            else
+                errorMessage = "В таблице Roles нет ролей. Добавьте хотя бы одну роль.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить роли: {ex.Message}";
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        await form.ValidateAsync();
+
+        if (!form.IsValid || !ValidatePassword())
+            return;
+
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await EmployeeService.CreateEmployeeAsync(model);
+
+            switch (result)
+            {
+                case CreateEmployeeResult.Success:
+                    NavigationManager.NavigateTo("/employees");
+                    break;
+                case CreateEmployeeResult.EmailAlreadyExists:
+                    errorMessage = "Пользователь с таким email уже существует.";
+                    break;
+                case CreateEmployeeResult.RoleNotFound:
+                    errorMessage = "Выбранная роль не найдена.";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось создать сотрудника: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private bool ValidatePassword()
+    {
+        if (model.Password.Length < 6)
+        {
+            errorMessage = "Пароль должен быть не короче 6 символов.";
+            return false;
+        }
+
+        if (model.Password != confirmPassword)
+        {
+            errorMessage = "Пароли не совпадают.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+}

@@ -1,0 +1,171 @@
+@page "/uno/create"
+@attribute [Authorize]
+@using Diplom.Data.Services
+@using Microsoft.EntityFrameworkCore
+@inject LightingObjectService LightingObjectService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Добавить УНО</PageTitle>
+
+<MudStack Spacing="4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.h4">Добавить УНО</MudText>
+
+        <MudButton Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="Cancel">
+            Назад
+        </MudButton>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            @errorMessage
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudForm @ref="form">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="model.InventoryNumber"
+                                  Label="Инвентарный номер"
+                                  Required="true"
+                                  RequiredError="Укажите инвентарный номер"
+                                  MaxLength="100"
+                                  Variant="Variant.Outlined"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int"
+                               @bind-Value="model.StatusId"
+                               Label="Статус"
+                               Required="true"
+                               RequiredError="Выберите статус"
+                               Variant="Variant.Outlined">
+                        @foreach (var status in statuses)
+                        {
+                            <MudSelectItem T="int" Value="@status.Id">@status.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="model.Address"
+                                  Label="Адрес"
+                                  Required="true"
+                                  RequiredError="Укажите адрес"
+                                  Variant="Variant.Outlined"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="model.Latitude"
+                                     Label="Широта"
+                                     Required="true"
+                                     Min="-90"
+                                     Max="90"
+                                     Variant="Variant.Outlined"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="model.Longitude"
+                                     Label="Долгота"
+                                     Required="true"
+                                     Min="-180"
+                                     Max="180"
+                                     Variant="Variant.Outlined"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="model.Description"
+                                  Label="Описание"
+                                  Lines="4"
+                                  Variant="Variant.Outlined"/>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+        <MudButton Variant="Variant.Text"
+                   Disabled="isSaving"
+                   OnClick="Cancel">
+            Отмена
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="isSaving || statuses.Count == 0"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="Save">
+            Сохранить
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@code {
+    [SupplyParameterFromQuery(Name = "lat")] public decimal? LatitudeFromMap { get; set; }
+    [SupplyParameterFromQuery(Name = "lng")] public decimal? LongitudeFromMap { get; set; }
+
+    private MudForm? form;
+    private LightingObjectCreateDto model = new();
+    private List<StatusOptionDto> statuses = [];
+    private bool isSaving;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            statuses = await LightingObjectService.GetLightingObjectStatusesAsync();
+            model.StatusId = statuses.FirstOrDefault()?.Id ?? 0;
+
+            if (LatitudeFromMap.HasValue)
+                model.Latitude = LatitudeFromMap.Value;
+
+            if (LongitudeFromMap.HasValue)
+                model.Longitude = LongitudeFromMap.Value;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось загрузить статусы УНО: {ex.Message}";
+        }
+    }
+
+    private async Task Save()
+    {
+        if (form is null)
+            return;
+
+        await form.ValidateAsync();
+
+        if (!form.IsValid)
+            return;
+
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            var id = await LightingObjectService.CreateLightingObjectAsync(model);
+            NavigationManager.NavigateTo($"/uno/{id}");
+        }
+        catch (DbUpdateException ex)
+        {
+            errorMessage = $"Не удалось сохранить УНО. Проверьте уникальность инвентарного номера. {ex.GetBaseException().Message}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось сохранить УНО: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo("/home");
+}

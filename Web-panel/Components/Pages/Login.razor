@@ -1,0 +1,158 @@
+@page "/login"
+@layout AuthLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<PageTitle>Вход в систему</PageTitle>
+
+<div class="login-page">
+    <MudPaper Class="login-panel" Elevation="8">
+        <MudStack Spacing="3">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">Мосгорсвет</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    Войдите в админ-панель
+                </MudText>
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+                    @errorMessage
+                </MudAlert>
+            }
+
+            <MudForm @ref="form">
+                <MudStack Spacing="2">
+                    <MudTextField T="string"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Email"
+                                  Required="true"
+                                  RequiredError="Введите email"
+                                  Disabled="isLoading"
+                                  @bind-Value="model.Email"/>
+
+                    <MudTextField T="string"
+                                  Label="Пароль"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                                  Required="true"
+                                  RequiredError="Введите пароль"
+                                  Disabled="isLoading"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  @bind-Value="model.Password"/>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               FullWidth="true"
+                               Disabled="isLoading"
+                               OnClick="LoginAsync">
+                        @if (isLoading)
+                        {
+                            <MudProgressCircular Class="me-2" Size="Size.Small" Indeterminate="true"/>
+                            <span>Вход...</span>
+                        }
+                        else
+                        {
+                            <span>Войти</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudForm>
+        </MudStack>
+    </MudPaper>
+</div>
+
+@code {
+    private readonly LoginFormModel model = new();
+    private MudForm form = null!;
+    private bool isLoading;
+    private bool showPassword;
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask is null)
+            return;
+
+        var authState = await AuthenticationStateTask;
+
+        if (authState.User.Identity?.IsAuthenticated == true)
+            NavigationManager.NavigateTo(GetSafeReturnUrl());
+    }
+
+    private async Task LoginAsync()
+    {
+        await form.ValidateAsync();
+
+        if (!form.IsValid)
+            return;
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<AuthLoginResult>(
+                "diplomAuth.login",
+                model.Email,
+                model.Password);
+
+            if (!result.Ok)
+            {
+                errorMessage = result.Status == 401
+                    ? "Неверный email или пароль"
+                    : "Не удалось выполнить вход";
+                return;
+            }
+
+            NavigationManager.NavigateTo(GetSafeReturnUrl(), forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Не удалось выполнить вход: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private string GetSafeReturnUrl()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnUrl) || !ReturnUrl.StartsWith('/'))
+            return "/home";
+
+        return ReturnUrl.StartsWith("//", StringComparison.Ordinal)
+            ? "/home"
+            : ReturnUrl;
+    }
+
+    private sealed class LoginFormModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    private sealed class AuthLoginResult
+    {
+        public bool Ok { get; set; }
+        public int Status { get; set; }
+    }
+}
